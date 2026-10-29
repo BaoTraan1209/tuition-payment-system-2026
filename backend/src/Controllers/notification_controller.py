@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from src.config.db import get_db
-from src.Security.auth_dependency import get_current_user
-from src.Services.notification_service import (
+from config.db import get_db
+from Security.auth_dependency import get_current_user
+from Services.notification_service import (
     list_notifications, mark_notification_read, send_tuition_reminder
 )
 

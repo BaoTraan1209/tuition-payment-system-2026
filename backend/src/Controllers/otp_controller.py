@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from src.Security.auth_dependency import get_current_user
+from Security.auth_dependency import get_current_user
 
-from src.config.db import get_db
-from src.Services.otp_service import (
+from config.db import get_db
+from Services.otp_service import (
     request_otp,
     verify_otp
 )

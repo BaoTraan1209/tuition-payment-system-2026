@@ -1,12 +1,12 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.Repositories.payment_repository import (
+from Repositories.payment_repository import (
     create_payment, get_payment_for_payer, lock_account, debit_account,
     mark_tuition_paid, mark_payment_success, create_transaction
 )
-from src.Services.otp_service import verify_otp
-from src.Services.notification_service import send_payment_result_email
+from Services.otp_service import verify_otp
+from Services.notification_service import send_payment_result_email
 
 
 def create_payment_request(db: Session, payer_id: int, tuition_id: int):

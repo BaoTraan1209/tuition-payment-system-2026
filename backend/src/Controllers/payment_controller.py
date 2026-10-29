@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.config.db import get_db
-from src.Security.auth_dependency import get_current_user
-from src.Services.payment_service import create_payment_request, complete_payment
+from config.db import get_db
+from Security.auth_dependency import get_current_user
+from Services.payment_service import create_payment_request, complete_payment
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 

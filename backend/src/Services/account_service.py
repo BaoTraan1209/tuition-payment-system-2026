@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from src.Repositories.account_repository import get_account_by_payer_id
+from Repositories.account_repository import get_account_by_payer_id
 
 
 def get_payer_account(db: Session, payer_id: int):

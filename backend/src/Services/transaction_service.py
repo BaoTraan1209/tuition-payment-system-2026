@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.Repositories.transaction_repository import get_transactions_by_payer
+from Repositories.transaction_repository import get_transactions_by_payer
 
 
 def get_payer_transactions(db: Session, payer_id: int):

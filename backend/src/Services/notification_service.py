@@ -4,7 +4,7 @@ from email.message import EmailMessage
 from pathlib import Path
 
 from dotenv import load_dotenv
-from src.Repositories.notification_repository import (
+from Repositories.notification_repository import (
     get_notifications, mark_read, create_notification, get_owned_tuition_for_reminder
 )
 

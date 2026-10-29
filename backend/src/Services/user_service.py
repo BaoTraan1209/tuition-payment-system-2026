@@ -1,37 +1,83 @@
+from uuid import UUID
+
+from fastapi import HTTPException
+from starlette import status
 from sqlalchemy.orm import Session
 
-from src.Repositories.user_repository import get_user_by_id, update_user_profile
+from Repositories.user_repository import UserRepository
 
 
-def get_user_profile(db: Session, payer_id: int):
-    if payer_id <= 0:
-        raise ValueError("Invalid payer ID.")
-    user = get_user_by_id(db, payer_id)
-    if user is None:
-        raise ValueError("User was not found.")
-    return user
+class UserService:
+    def __init__(self, db: Session):
+        self.user_repository = UserRepository(db)
 
+    def get_profile(self, id: UUID):
+        if not id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID."
+            )
 
-def edit_user_profile(db: Session, payer_id: int, updates: dict):
-    if payer_id <= 0:
-        raise ValueError("Invalid payer ID.")
+        user = self.user_repository.find_by_id(id)
+        print("Found user:", user)
 
-    allowed = {"fullname", "phone", "email"}
-    values = {key: value for key, value in updates.items() if key in allowed}
-    if not values:
-        raise ValueError("Provide at least one profile field to update.")
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found."
+            )
 
-    if "fullname" in values and values["fullname"] is not None:
-        values["fullname"] = values["fullname"].strip()
-        if not values["fullname"]:
-            raise ValueError("Full name cannot be empty.")
+        return user
 
-    if "phone" in values and values["phone"] is not None:
-        values["phone"] = values["phone"].strip() or None
+    def edit_profile(self, id: UUID, updates: dict):
+        user = self.user_repository.find_by_id(id)
 
-    if "email" in values and values["email"] is not None:
-        values["email"] = values["email"].strip().lower()
-        if values["email"] and ("@" not in values["email"] or "." not in values["email"].rsplit("@", 1)[-1]):
-            raise ValueError("Email address is invalid.")
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found."
+            )
 
-    return update_user_profile(db, payer_id, **values)
+        allowed = {"fullname", "phone", "email"}
+        values = {
+            key: value
+            for key, value in updates.items()
+            if key in allowed
+        }
+
+        if not values:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Provide at least one profile field to update."
+            )
+
+        if "fullname" in values and values["fullname"] is not None:
+            values["fullname"] = values["fullname"].strip()
+
+            if not values["fullname"]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Full name cannot be empty."
+                )
+
+        if "phone" in values and values["phone"] is not None:
+            values["phone"] = values["phone"].strip() or None
+
+        if "email" in values and values["email"] is not None:
+            values["email"] = values["email"].strip().lower()
+
+            if values["email"] and (
+                "@" not in values["email"]
+                or "." not in values["email"].rsplit("@", 1)[-1]
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email address is invalid."
+                )
+
+        for key, value in values.items():
+            setattr(user, key, value)
+
+        self.user_repository.save(user)
+
+        return user

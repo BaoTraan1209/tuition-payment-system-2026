@@ -1,18 +1,29 @@
-from fastapi import HTTPException
-from src.Repositories.auth_repository import get_user_by_username
-from src.Security.password import verify_password
-from src.Security.jwt import create_access_token
+from fastapi import HTTPException, Request
+from starlette import status
+from sqlalchemy.orm import Session
 
-def login_user(db, username, password):
-    user = get_user_by_username(db, username)
+from Repositories.user_repository import UserRepository
+from Security.password import verify_password
 
-    if not user or not verify_password(password, user.password_hash):
-        raise HTTPException(
-            status_code=401,
-            detail="Sai tên đăng nhập hoặc mật khẩu"
-        )
+class AuthService:
+    def __init__(self, db: Session):
+        self.user_repository = UserRepository(db)
 
-    return {
-        "access_token": create_access_token(user.id),
-        "token_type": "bearer"
-    }
+    def login(
+        self,
+        username: str,
+        password: str,
+        request: Request
+    ):
+        user = self.user_repository.find_by_username(username)
+
+        if user is None or not verify_password(
+            password,
+            user.password_hash
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthorized"
+            )
+
+        return user

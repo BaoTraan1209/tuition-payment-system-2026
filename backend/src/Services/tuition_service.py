@@ -1,4 +1,4 @@
-from src.Repositories.tuition_repository import get_tuition_by_mssv
+from Repositories.tuition_repository import get_tuition_by_mssv
 
 
 VALID_TUITION_STATUSES = {"UNPAID", "PAID", "PENDING", "OVERDUE", "CANCELLED"}

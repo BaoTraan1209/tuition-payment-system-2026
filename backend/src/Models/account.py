@@ -1,6 +1,6 @@
 #ánh xạ bảg AccountDB
 from sqlalchemy import Column, Integer, Numeric, String, DateTime, ForeignKey
-from src.config.db import Base
+from config.db import Base
 
 class Account(Base):
     __tablename__ = "accounts"

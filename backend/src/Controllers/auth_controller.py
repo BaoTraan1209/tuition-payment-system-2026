@@ -1,56 +1,100 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from jose import JWTError
+from pydantic import BaseModel
 
-from src.config.db import get_db
-from src.schemas.auth_schema import LoginRequest, LoginResponse, UserResponse
-from src.Services.auth_service import login_user
-from src.Security.auth_dependency import get_current_user
-from src.Models.account import Account
+from config.db import get_db
+from schemas.auth_schema import LoginRequest
+from Services.auth_service import AuthService
+from Services.user_service import UserService
+from Security.auth_dependency import get_current_user
+from Security.jwt import decode_token, create_access_token, get_token_ttl
+from Helpers.response_helper import send_success_response
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+from schemas.user_schema import UserProfileResponse
 
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+bearer = HTTPBearer()
 
-@router.post("/login", response_model=LoginResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    return login_user(db, data.username, data.password)
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
-
-@router.get("/me", response_model=UserResponse)
-def get_profile(
-    user=Depends(get_current_user),
+@router.post("/login")
+def login(
+    data: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
-    account = db.query(Account).filter(
-        Account.payer_id == user.payer_id
-    ).first()
+    auth_service = AuthService(db)
 
-    student = db.execute(
-        text("""
-            SELECT s.mssv
-            FROM payers p
-            JOIN students s ON p.student_id = s.student_id
-            WHERE p.payer_id = :payer_id
-        """),
-        {"payer_id": user.payer_id}
-    ).mappings().first()
+    user = auth_service.login(
+        data.username,
+        data.password,
+        request
+    )
 
-    return {
-        "payer_id": user.payer_id,
-        "username": user.username,
-        "fullname": user.fullname,
-        "phone": user.phone,
-        "email": user.email,
-        "balance": float(account.balance),
-        "status": account.status,
-        "mssv": student["mssv"] if student else None
+    user_data = UserProfileResponse.model_validate(user).model_dump()
+
+    result = {
+        "access_token": create_access_token(str(user.id)),
+        "token_type": "bearer",
+        "expires_in": get_token_ttl(),
+        "user": user_data
     }
 
+    return send_success_response(
+        data=result,
+        msg="Login successful"
+    )
 
-@router.get("/my-email")
-def get_my_email(current_user=Depends(get_current_user)):
-    return {
-        "payer_id": current_user.payer_id,
-        "username": current_user.username,
-        "email": current_user.email
-    }
+@router.post("/refresh")
+def refresh(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer)
+):
+    try:
+        payload = decode_token(credentials.credentials)
+
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid access token"
+            )
+
+        user_id = payload.get("sub")
+
+        if not user_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid access token"
+            )
+
+        result = {
+            "access_token": create_access_token(user_id),
+            "token_type": "bearer",
+            "expires_in": get_token_ttl()
+        }
+
+        return send_success_response(
+            data=result,
+            msg="Refresh successful"
+        )
+
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Access token expired or invalid"
+        )
+
+@router.get("/me")
+def get_profile(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    user_service = UserService(db)
+    user = user_service.get_profile(current_user.id)
+
+    return send_success_response(
+        data=UserProfileResponse.model_validate(user).model_dump(),
+        msg="Get profile successful"
+    )

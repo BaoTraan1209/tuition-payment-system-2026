@@ -1,29 +1,51 @@
+from uuid import UUID
+
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
 from jose import JWTError
+from sqlalchemy.orm import Session
 
-from src.config.db import get_db
-from src.Repositories.auth_repository import get_user_by_id
-from src.Security.jwt import decode_access_token
+from config.db import get_db
+from Repositories.user_repository import UserRepository
+from Security.jwt import decode_token
 
 bearer = HTTPBearer(auto_error=False)
 
+
 def get_current_user(
     credentials=Depends(bearer),
-    db=Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     if credentials is None:
-        raise HTTPException(401, "Chưa đăng nhập")
+        raise HTTPException(
+            status_code=401,
+            detail="Chưa đăng nhập"
+        )
 
     try:
-        payload = decode_access_token(credentials.credentials)
-        user_id = int(payload["sub"])
-    except (JWTError, KeyError, ValueError, TypeError):
-        raise HTTPException(401, "Token không hợp lệ")
+        payload = decode_token(credentials.credentials)
 
-    user = get_user_by_id(db, user_id)
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=401,
+                detail="Token không hợp lệ"
+            )
+
+        user_id = str(UUID(payload["sub"]))
+        
+    except (JWTError, KeyError, ValueError, TypeError):
+        raise HTTPException(
+            status_code=401,
+            detail="Token không hợp lệ"
+        )
+
+    user_repository = UserRepository(db)
+    user = user_repository.find_by_id(user_id)
 
     if user is None:
-        raise HTTPException(401, "Tài khoản không tồn tại")
+        raise HTTPException(
+            status_code=401,
+            detail="Tài khoản không tồn tại"
+        )
 
     return user

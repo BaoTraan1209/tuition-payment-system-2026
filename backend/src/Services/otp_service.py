@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.Repositories.otp_repository import (
+from Repositories.otp_repository import (
     get_payment_email,
     invalidate_previous_otps,
     create_otp_record,
@@ -16,7 +16,7 @@ from src.Repositories.otp_repository import (
     increase_otp_attempts,
     mark_otp_used
 )
-from src.Services.notification_service import send_otp_email
+from Services.notification_service import send_otp_email
 
 load_dotenv()
 

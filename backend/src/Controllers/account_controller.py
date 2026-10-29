@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from src.config.db import get_db
-from src.Security.auth_dependency import get_current_user
-from src.schemas.account_schema import AccountResponse, AccountBalanceResponse
-from src.Services.account_service import get_payer_account, get_payer_balance
+from config.db import get_db
+from Security.auth_dependency import get_current_user
+from schemas.account_schema import AccountResponse, AccountBalanceResponse
+from Services.account_service import get_payer_account, get_payer_balance
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
